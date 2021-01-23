@@ -15,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gen2brain/raylib-go/raylib"
+	"github.com/kbinani/screenshot"
 	"math/rand"
 	"os"
 	"strconv"
@@ -25,6 +26,8 @@ const SCREEN_WIDTH int32 = 1920
 const SCREEN_HEIGHT int32 = 1080
 
 type GameOfLife struct {
+	ScreenWidth                 int32
+	ScreenHeight                int32
 	WorldWidth                  int32
 	WorldHeight                 int32
 	Cells                       [][]bool
@@ -38,15 +41,27 @@ func main() {
 
 	flag.Parse()
 	fmt.Println("Game of Life\n")
-	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Game of Life")
+
+	n := screenshot.NumActiveDisplays()
+	if n < 1 {
+		fmt.Println("No screens found.\n")
+		os.Exit(1)
+	}
+
+	// Get boundaries of the first available screen
+	bounds := screenshot.GetDisplayBounds(0)
+	screenWidth := int32(bounds.Dx())
+	screenHeight := int32(bounds.Dy())
+
+	rl.InitWindow(screenWidth, screenHeight, "Game of Life")
 	rl.SetTargetFPS(60)
 
-	gameOfLife := GameOfLife{}
+	gameOfLife := GameOfLife{ScreenWidth: screenWidth, ScreenHeight: screenHeight}
 	if len(*filename) == 0 {
-		// Run the Game of Life with a random pattern
+		// Run the Game of Life with a random generated pattern
 		gameOfLife.Init()
 	} else {
-		// Run the Game of Life using a pattern in Extended RLE format from a file
+		// Run the Game of Life using a pattern from file in Extended RLE format
 		gameOfLife.InitWithFile(*filename)
 	}
 
@@ -62,8 +77,9 @@ func main() {
 // GameOfLife functions
 
 func (m *GameOfLife) Init() {
-	m.WorldWidth = SCREEN_WIDTH / 2
-	m.WorldHeight = SCREEN_HEIGHT / 2
+	// By making the world 3 times smaller then the screen resolution we get a more pixelated texture, so cells are 3 times bigger than the size of a single pixel.
+	m.WorldWidth = m.ScreenWidth / 3
+	m.WorldHeight = m.ScreenHeight / 3
 	m.Canvas = rl.LoadRenderTexture(m.WorldWidth, m.WorldHeight)
 	m.CurrentGenerationCellsIndex = 0
 
@@ -219,7 +235,7 @@ func (m *GameOfLife) Draw() {
 		}
 	}
 	rl.EndTextureMode()
-	rl.DrawTexturePro(m.Canvas.Texture, rl.NewRectangle(0, 0, float32(m.Canvas.Texture.Width), float32(m.Canvas.Texture.Height)), rl.NewRectangle(0, 0, float32(SCREEN_WIDTH), float32(SCREEN_HEIGHT)), rl.NewVector2(float32(0), float32(0)), 0, rl.RayWhite)
+	rl.DrawTexturePro(m.Canvas.Texture, rl.NewRectangle(0, 0, float32(m.Canvas.Texture.Width), float32(m.Canvas.Texture.Height)), rl.NewRectangle(0, 0, float32(m.ScreenWidth), float32(m.ScreenHeight)), rl.NewVector2(float32(0), float32(0)), 0, rl.RayWhite)
 	rl.EndDrawing()
 }
 
