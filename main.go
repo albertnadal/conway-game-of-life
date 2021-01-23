@@ -4,7 +4,7 @@
  * @author Albert Nadal Garriga (anadalg@gmail.com)
  * @date   17-01-2021
  * @brief  Go implementation of the Conway Game of Life
- * @usage  go run main.go --fps=60 --file=queenbeeturner.rle
+ * @usage  go run main.go --fps=60 --threads=16 --file=queenbeeturner.rle
  */
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -16,16 +16,14 @@ import (
 	"fmt"
 	"github.com/gen2brain/raylib-go/raylib"
 	"github.com/kbinani/screenshot"
+	"math"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
-	"runtime"
 	"sync"
-	"math"
 )
-
-const MAX_THREADS int32 = 16
 
 type GameOfLife struct {
 	ScreenWidth                 int32
@@ -35,13 +33,15 @@ type GameOfLife struct {
 	Cells                       [][]bool
 	CurrentGenerationCellsIndex int
 	Canvas                      rl.RenderTexture2D
-	ThreadWaitGroup          	sync.WaitGroup
-	FragmentWidth           	int32
-	FragmentHeight           	int32
+	ThreadWaitGroup             sync.WaitGroup
+	FragmentWidth               int32
+	FragmentHeight              int32
+	MaxThreads                  int32
 }
 
 var filename = flag.String("file", "", "File with a Game Of Life map in Extended RLE format.")
 var fps = flag.String("fps", "", "Frames per second.")
+var maxThreads = flag.String("threads", "16", "Max threads used for processing (16 by default).")
 
 func main() {
 
@@ -72,7 +72,13 @@ func main() {
 		rl.SetTargetFPS(int32(fps_))
 	}
 
-	gameOfLife := GameOfLife{ScreenWidth: screenWidth, ScreenHeight: screenHeight}
+	// Set-up the total amount of threads (goroutines) used for processing
+	var maxThreads_ int = 16
+	if len(*maxThreads) > 0 {
+		maxThreads_, _ = strconv.Atoi(*maxThreads)
+	}
+
+	gameOfLife := GameOfLife{ScreenWidth: screenWidth, ScreenHeight: screenHeight, MaxThreads: int32(maxThreads_)}
 	if len(*filename) == 0 {
 		// Run the Game of Life with a random generated pattern
 		gameOfLife.Init()
@@ -94,9 +100,9 @@ func main() {
 
 func (m *GameOfLife) Init() {
 	// By making the world 3 times smaller then the screen resolution we get a more pixelated texture, so cells are 3 times bigger than the size of a single pixel.
-	m.WorldWidth = getMultiple(m.ScreenWidth / 3, MAX_THREADS)
+	m.WorldWidth = getMultiple(m.ScreenWidth/3, m.MaxThreads)
 	m.WorldHeight = m.ScreenHeight / 3
-	m.FragmentWidth = int32(math.Ceil(float64(m.WorldWidth-1) / float64(MAX_THREADS)))
+	m.FragmentWidth = int32(math.Ceil(float64(m.WorldWidth-1) / float64(m.MaxThreads)))
 	m.FragmentHeight = m.WorldHeight - 1
 	m.Canvas = rl.LoadRenderTexture(m.WorldWidth, m.WorldHeight)
 	m.CurrentGenerationCellsIndex = 0
@@ -143,9 +149,9 @@ func (m *GameOfLife) InitWithFile(filename string) {
 	}
 
 	buffer = ""
-	m.WorldWidth = getMultiple(int32(width), MAX_THREADS)
+	m.WorldWidth = getMultiple(int32(width), m.MaxThreads)
 	m.WorldHeight = int32(height)
-	m.FragmentWidth = int32(math.Ceil(float64(m.WorldWidth-1) / float64(MAX_THREADS)))
+	m.FragmentWidth = int32(math.Ceil(float64(m.WorldWidth-1) / float64(m.MaxThreads)))
 	m.FragmentHeight = m.WorldHeight - 1
 	m.Canvas = rl.LoadRenderTexture(m.WorldWidth, m.WorldHeight)
 	m.CurrentGenerationCellsIndex = 0
@@ -190,7 +196,7 @@ func (m *GameOfLife) InitWithFile(filename string) {
 }
 
 func (m *GameOfLife) Update() {
-	for i := int32(0); i < MAX_THREADS; i++ {
+	for i := int32(0); i < m.MaxThreads; i++ {
 		m.ThreadWaitGroup.Add(1)
 		go m.UpdateFragment(i)
 	}
@@ -201,8 +207,7 @@ func (m *GameOfLife) Update() {
 func (m *GameOfLife) UpdateFragment(thread_index int32) {
 	defer m.ThreadWaitGroup.Done()
 	nextGenerationCells := m.Cells[(m.CurrentGenerationCellsIndex+1)%2]
-	for x := thread_index * m.FragmentWidth; x < (thread_index * m.FragmentWidth) + m.FragmentWidth; x++ {
-		//fmt.Printf("thread:%d - fragmentwidth:%d - xfrom:%d - xto:%d - x:%d\n", thread_index, m.FragmentWidth, thread_index * m.FragmentWidth, (thread_index * m.FragmentWidth) + m.FragmentWidth, x)
+	for x := thread_index * m.FragmentWidth; x < (thread_index*m.FragmentWidth)+m.FragmentWidth; x++ {
 		for y := int32(0); y < m.WorldHeight; y++ {
 			cellIndex := (m.WorldWidth * y) + x
 			liveNeighboursCount := m.GetLiveNeighboursCount(x, y)
@@ -258,7 +263,7 @@ func (m *GameOfLife) Draw() {
 	rl.ClearBackground(rl.RayWhite)
 	for x := int32(0); x < m.WorldWidth; x++ {
 		for y := int32(0); y < m.WorldHeight; y++ {
-			if m.Cells[m.CurrentGenerationCellsIndex][(m.WorldWidth*y)+x] {
+			if m.Cells[m.CurrentGenerationCellsIndex][(m.WorldWidth*(m.WorldHeight-y-1))+x] {
 				rl.DrawPixel(x, y, rl.NewColor(0, 0, 0, 255))
 			}
 		}
@@ -281,7 +286,7 @@ func mod(a, b int32) int32 {
 
 func getMultiple(a, b int32) int32 {
 	if (a % b) != 0 {
-		return a + (b - (a % b));
+		return a + (b - (a % b))
 	}
 	return a
 }
