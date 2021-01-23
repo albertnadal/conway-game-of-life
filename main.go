@@ -4,15 +4,21 @@
  * @author Albert Nadal Garriga (anadalg@gmail.com)
  * @date   17-01-2021
  * @brief  Go implementation of the Conway Game of Life
+ * @usage  go run main.go --file=queenbeeturner.rle
  */
 ///////////////////////////////////////////////////////////////////////////////
 
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
 	"github.com/gen2brain/raylib-go/raylib"
 	"math/rand"
+	"os"
+	"strconv"
+	"strings"
 )
 
 const SCREEN_WIDTH int32 = 1920
@@ -26,14 +32,23 @@ type GameOfLife struct {
 	Canvas                      rl.RenderTexture2D
 }
 
+var filename = flag.String("file", "", "File with a Game Of Life map in Extended RLE format.")
+
 func main() {
 
+	flag.Parse()
 	fmt.Println("Game of Life\n")
 	rl.InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Game of Life")
 	rl.SetTargetFPS(60)
 
 	gameOfLife := GameOfLife{}
-	gameOfLife.Init()
+	if len(*filename) == 0 {
+		// Run the Game of Life with a random pattern
+		gameOfLife.Init()
+	} else {
+		// Run the Game of Life using a pattern in Extended RLE format from a file
+		gameOfLife.InitWithFile(*filename)
+	}
 
 	for !rl.WindowShouldClose() {
 		gameOfLife.Draw()
@@ -65,6 +80,76 @@ func (m *GameOfLife) Init() {
 		}
 		m.Cells[1][i] = false // No live cell here
 	}
+}
+
+func (m *GameOfLife) InitWithFile(filename string) {
+	f, _ := os.Open(filename)
+	scanner := bufio.NewScanner(f)
+	scanner.Split(bufio.ScanBytes)
+
+	buffer := ""
+	var count int32 = 0
+	width := 0
+	height := 0
+	var row int32 = 0
+
+	// Parse the first line to get the width and height of the pattern
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		if (b[0] == 13) || (b[0] == 10) {
+			// New Line (10) or Carriage Return (13)
+			s := strings.Split(buffer, ",")
+			width, _ = strconv.Atoi(strings.TrimSpace(strings.Split(s[0], "=")[1]))
+			height, _ = strconv.Atoi(strings.TrimSpace(strings.Split(s[1], "=")[1]))
+			break
+		} else {
+			buffer += string(b)
+		}
+	}
+
+	buffer = ""
+	m.WorldWidth = int32(width)
+	m.WorldHeight = int32(height)
+	m.Canvas = rl.LoadRenderTexture(m.WorldWidth, m.WorldHeight)
+	m.CurrentGenerationCellsIndex = 0
+
+	// Initialize cell vectors
+	totalCells := m.WorldWidth * m.WorldHeight
+	m.Cells = make([][]bool, 2)
+	m.Cells[0] = make([]bool, totalCells)
+	m.Cells[1] = make([]bool, totalCells)
+
+	// Parse the encoded content in Extended RLE format
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		if (b[0] >= 48) && (b[0] <= 57) {
+			// Numeric character
+			buffer += string(b)
+		} else if (string(b) == "b") || (string(b) == "o") {
+			e := 1
+			if buffer != "" {
+				e, _ = strconv.Atoi(buffer)
+			}
+
+			for i := count; i < count+int32(e); i++ {
+				if string(b) == "b" {
+					m.Cells[0][i] = false
+				} else {
+					m.Cells[0][i] = true
+				}
+			}
+			buffer = ""
+			count += int32(e)
+		} else if (string(b) == "$") || (string(b) == "!") {
+			for i := count; i < (row+1)*m.WorldWidth; i++ {
+				m.Cells[0][i] = false
+			}
+			row++
+			count = row * int32(m.WorldWidth)
+		}
+	}
+
+	f.Close()
 }
 
 func (m *GameOfLife) Update() {
@@ -111,8 +196,8 @@ func (m *GameOfLife) GetLiveNeighboursCount(x, y int32) int {
 	}
 
 	for _, c := range neighbourCoordinates {
-		_x := mod(x+c.x, m.WorldWidth)
-		_y := mod(y+c.y, m.WorldHeight)
+		_x := mod(x+c.x, m.WorldWidth-1)
+		_y := mod(y+c.y, m.WorldHeight-1)
 		if m.Cells[m.CurrentGenerationCellsIndex][(m.WorldWidth*_y)+_x] {
 			count++
 		}
@@ -124,7 +209,6 @@ func (m *GameOfLife) GetLiveNeighboursCount(x, y int32) int {
 func (m *GameOfLife) Draw() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.RayWhite)
-
 	rl.BeginTextureMode(m.Canvas)
 	rl.ClearBackground(rl.RayWhite)
 	for x := int32(0); x < m.WorldWidth; x++ {
@@ -135,7 +219,6 @@ func (m *GameOfLife) Draw() {
 		}
 	}
 	rl.EndTextureMode()
-
 	rl.DrawTexturePro(m.Canvas.Texture, rl.NewRectangle(0, 0, float32(m.Canvas.Texture.Width), float32(m.Canvas.Texture.Height)), rl.NewRectangle(0, 0, float32(SCREEN_WIDTH), float32(SCREEN_HEIGHT)), rl.NewVector2(float32(0), float32(0)), 0, rl.RayWhite)
 	rl.EndDrawing()
 }

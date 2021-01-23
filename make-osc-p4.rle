@@ -1,0 +1,27 @@
+x = 266, y = 262, rule = B3/S23
+232b2o$231bo2bo$232b2obo$235bo2bo$230b3o2bobobo$229bo3b2o2bobo$228bobo
+2b2o3bo$228bobobo2b3o$175b2o3b2o47bo2bo$174bo2bobo2bo49bob2o$174bob2ob
+2obo50bo2bo$173b2o7b2o50b2o$118b3o5b3o46bobobobo$121b2ob2o47b2o7b2o$
+122bobo49bob2ob2obo$57bo64bobo49bo2bobo2bo$2bo53bobo60b3o3b3o47b2o3b2o
+$2b2o51bo2bo$bo2bo4bo45bob2obo58b3o3b3o$bobo3bo2bo43b2o4b3o59bobo$o2bo
+3bobo46bob2o3bo58bobo$bo4bo2bo42b3ob3o2bo2bo56b2ob2o$7b2o42bo2bo2b3ob
+3o54b3o5b3o$8bo43bo3b2obo$53b3o4b2o$55bob2obo$57bo2bo$57bobo$58bo$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$137bo$
+137bobo$137b2o25b3o$164bo$165bo$143bo14bo$142bobo12b3o$141b5o11b4o$
+140b3ob3o12bobo72b2o18b2o4bo$141b2o15b3o73b2o18b2o4bobo$145bob2o7bob2o
+100b2o$33b2o111b2o6b2o2bo80bobo7bo$29b2obo2bob2o107bo8b2o82bo2bo6b2o$
+29b2ob2obob2o117bo85b2o6b2o$35bo205bo2b2o$29b4o2bob2o111b2o91bo5b2o$
+28bo4b2o2bobo110b2o97bo$28bobo2b2o4bo209bo$29b2obo2b4o106bo$32bo112b2o
+8bo81b2o12b2o$29b2obob2ob2o104bo2b2o6b2o81b2o12b2o$29b2obo2bob2o103b2o
+bo7b2obo$33b2o106b3o15b2o83b2o$140bobo12b3ob3o78bo2bo2bo2bo$141b4o11b
+5o79bo8bo$142b3o12bobo80bo3b2o3bo$143bo14bo83bo4bo$136bo102bo2bo4bo2bo
+$137bo102b2o6b2o$135b3o25b2o$162bobo$164bo$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+9b3o6b3o100bo$12b2o2b2o95bo2bo2b4o$112b2obo4bobo$10b10o93bo4b2o2b2o$
+14b2o100b5o$116bo3b3o$112b2o3b2o2bo$114bo3bo2bo$112b2o5b2o$157bobo$
+145b3o9b2o$145bo6b3o3bo$125bo17b2o6bo$124bo2bo14b4o4bo3bo$125bobo13b2o
+3bo$109b2o14bo2bo11bo2bo9bo$107bo10bo7bobo2bobo6b3o7bo$109bo7b3o6bobo
+2bobo7bo10bo$106bo9bo2bo11bo2bo14b2o$113bo3b2o13bobo$105bo3bo4b4o14bo
+2bo$108bo6b2o17bo$101bo3b3o6bo$101b2o9b3o$100bobo$139b2o5b2o$138bo2bo
+3bo$138bo2b2o3b2o$137b3o3bo$139b5o$136b2o2b2o4bo$137bobo4bob2o$137b4o
+2bo2bo$138bo!
