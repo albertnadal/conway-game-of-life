@@ -4,7 +4,7 @@
  * @author Albert Nadal Garriga (anadalg@gmail.com)
  * @date   17-01-2021
  * @brief  Go implementation of the Conway Game of Life
- * @usage  go run main.go --file=queenbeeturner.rle
+ * @usage  go run main.go --fps=60 --file=queenbeeturner.rle
  */
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -41,6 +41,7 @@ type GameOfLife struct {
 }
 
 var filename = flag.String("file", "", "File with a Game Of Life map in Extended RLE format.")
+var fps = flag.String("fps", "", "Frames per second.")
 
 func main() {
 
@@ -64,7 +65,12 @@ func main() {
 	runtime.GOMAXPROCS(totalCores)
 
 	rl.InitWindow(screenWidth, screenHeight, "Game of Life")
-	rl.SetTargetFPS(120)
+
+	// Limit the fps to adjust renderization speed
+	if len(*fps) > 0 {
+		fps_, _ := strconv.Atoi(*fps)
+		rl.SetTargetFPS(int32(fps_))
+	}
 
 	gameOfLife := GameOfLife{ScreenWidth: screenWidth, ScreenHeight: screenHeight}
 	if len(*filename) == 0 {
