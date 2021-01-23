@@ -20,10 +20,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"runtime"
+	"sync"
+	"math"
 )
 
-const SCREEN_WIDTH int32 = 1920
-const SCREEN_HEIGHT int32 = 1080
+const MAX_THREADS int32 = 16
 
 type GameOfLife struct {
 	ScreenWidth                 int32
@@ -33,6 +35,9 @@ type GameOfLife struct {
 	Cells                       [][]bool
 	CurrentGenerationCellsIndex int
 	Canvas                      rl.RenderTexture2D
+	ThreadWaitGroup          	sync.WaitGroup
+	FragmentWidth           	int32
+	FragmentHeight           	int32
 }
 
 var filename = flag.String("file", "", "File with a Game Of Life map in Extended RLE format.")
@@ -53,8 +58,13 @@ func main() {
 	screenWidth := int32(bounds.Dx())
 	screenHeight := int32(bounds.Dy())
 
+	// Set-up the Go runtime to use all the available CPU cores
+	totalCores := runtime.NumCPU()
+	fmt.Printf("- Multi-threaded cores available: %d\n", totalCores)
+	runtime.GOMAXPROCS(totalCores)
+
 	rl.InitWindow(screenWidth, screenHeight, "Game of Life")
-	rl.SetTargetFPS(60)
+	rl.SetTargetFPS(120)
 
 	gameOfLife := GameOfLife{ScreenWidth: screenWidth, ScreenHeight: screenHeight}
 	if len(*filename) == 0 {
@@ -78,8 +88,10 @@ func main() {
 
 func (m *GameOfLife) Init() {
 	// By making the world 3 times smaller then the screen resolution we get a more pixelated texture, so cells are 3 times bigger than the size of a single pixel.
-	m.WorldWidth = m.ScreenWidth / 3
+	m.WorldWidth = getMultiple(m.ScreenWidth / 3, MAX_THREADS)
 	m.WorldHeight = m.ScreenHeight / 3
+	m.FragmentWidth = int32(math.Ceil(float64(m.WorldWidth-1) / float64(MAX_THREADS)))
+	m.FragmentHeight = m.WorldHeight - 1
 	m.Canvas = rl.LoadRenderTexture(m.WorldWidth, m.WorldHeight)
 	m.CurrentGenerationCellsIndex = 0
 
@@ -109,6 +121,7 @@ func (m *GameOfLife) InitWithFile(filename string) {
 	height := 0
 	var row int32 = 0
 
+	// Initialize a Game of Life pattern in Extended RLE from the file
 	// Parse the first line to get the width and height of the pattern
 	for scanner.Scan() {
 		b := scanner.Bytes()
@@ -124,8 +137,10 @@ func (m *GameOfLife) InitWithFile(filename string) {
 	}
 
 	buffer = ""
-	m.WorldWidth = int32(width)
+	m.WorldWidth = getMultiple(int32(width), MAX_THREADS)
 	m.WorldHeight = int32(height)
+	m.FragmentWidth = int32(math.Ceil(float64(m.WorldWidth-1) / float64(MAX_THREADS)))
+	m.FragmentHeight = m.WorldHeight - 1
 	m.Canvas = rl.LoadRenderTexture(m.WorldWidth, m.WorldHeight)
 	m.CurrentGenerationCellsIndex = 0
 
@@ -169,9 +184,19 @@ func (m *GameOfLife) InitWithFile(filename string) {
 }
 
 func (m *GameOfLife) Update() {
-	nextGenerationCells := m.Cells[(m.CurrentGenerationCellsIndex+1)%2]
+	for i := int32(0); i < MAX_THREADS; i++ {
+		m.ThreadWaitGroup.Add(1)
+		go m.UpdateFragment(i)
+	}
+	m.ThreadWaitGroup.Wait()
+	m.CurrentGenerationCellsIndex = (m.CurrentGenerationCellsIndex + 1) % 2
+}
 
-	for x := int32(0); x < m.WorldWidth; x++ {
+func (m *GameOfLife) UpdateFragment(thread_index int32) {
+	defer m.ThreadWaitGroup.Done()
+	nextGenerationCells := m.Cells[(m.CurrentGenerationCellsIndex+1)%2]
+	for x := thread_index * m.FragmentWidth; x < (thread_index * m.FragmentWidth) + m.FragmentWidth; x++ {
+		//fmt.Printf("thread:%d - fragmentwidth:%d - xfrom:%d - xto:%d - x:%d\n", thread_index, m.FragmentWidth, thread_index * m.FragmentWidth, (thread_index * m.FragmentWidth) + m.FragmentWidth, x)
 		for y := int32(0); y < m.WorldHeight; y++ {
 			cellIndex := (m.WorldWidth * y) + x
 			liveNeighboursCount := m.GetLiveNeighboursCount(x, y)
@@ -189,8 +214,6 @@ func (m *GameOfLife) Update() {
 			}
 		}
 	}
-
-	m.CurrentGenerationCellsIndex = (m.CurrentGenerationCellsIndex + 1) % 2
 }
 
 func (m *GameOfLife) GetLiveNeighboursCount(x, y int32) int {
@@ -248,4 +271,11 @@ func mod(a, b int32) int32 {
 		m += b
 	}
 	return m
+}
+
+func getMultiple(a, b int32) int32 {
+	if (a % b) != 0 {
+		return a + (b - (a % b));
+	}
+	return a
 }
