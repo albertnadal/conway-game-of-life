@@ -14,8 +14,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/gen2brain/raylib-go/raylib"
-	"github.com/kbinani/screenshot"
 	"math"
 	"math/rand"
 	"os"
@@ -23,6 +21,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/kbinani/screenshot"
 )
 
 type GameOfLife struct {
@@ -65,6 +66,7 @@ func main() {
 	runtime.GOMAXPROCS(totalCores)
 
 	rl.InitWindow(screenWidth, screenHeight, "Game of Life")
+	rl.SetWindowPosition(0, 30)
 
 	// Limit the fps to adjust renderization speed
 	if len(*fps) > 0 {
@@ -196,6 +198,7 @@ func (m *GameOfLife) InitWithFile(filename string) {
 }
 
 func (m *GameOfLife) Update() {
+	rl.SetWindowTitle(fmt.Sprintf("Game of Life. FPS: %f\n", rl.GetFPS()))
 	for i := int32(0); i < m.MaxThreads; i++ {
 		m.ThreadWaitGroup.Add(1)
 		go m.UpdateFragment(i)
