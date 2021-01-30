@@ -47,11 +47,11 @@ var maxThreads = flag.String("threads", "16", "Max threads used for processing (
 func main() {
 
 	flag.Parse()
-	fmt.Println("Game of Life\n")
+	fmt.Println("Game of Life")
 
 	n := screenshot.NumActiveDisplays()
 	if n < 1 {
-		fmt.Println("No screens found.\n")
+		fmt.Println("No screens found.")
 		os.Exit(1)
 	}
 
@@ -238,14 +238,14 @@ func (m *GameOfLife) GetLiveNeighboursCount(x, y int32) int {
 	}
 
 	neighbourCoordinates := []coord{
-		coord{x: -1, y: -1},
-		coord{x: 0, y: -1},
-		coord{x: 1, y: -1},
-		coord{x: -1, y: 0},
-		coord{x: 1, y: 0},
-		coord{x: -1, y: 1},
-		coord{x: 0, y: 1},
-		coord{x: 1, y: 1},
+		{x: -1, y: -1},
+		{x: 0, y: -1},
+		{x: 1, y: -1},
+		{x: -1, y: 0},
+		{x: 1, y: 0},
+		{x: -1, y: 1},
+		{x: 0, y: 1},
+		{x: 1, y: 1},
 	}
 
 	for _, c := range neighbourCoordinates {
